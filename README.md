@@ -21,8 +21,7 @@ aborts cleanly.
 | Family             | Label in code              |
 |--------------------|----------------------------|
 | 3.xx               | `FW 3.x`                   |
-| 4.00               | `FW 4.0`                   |
-| 4.xx (incl. 4.51)  | `FW 4.x (incl. 4.51)`      |
+| 4.xx               | `FW 4.x`                   |
 | 5.xx               | `FW 5.x`                   |
 | 6.xx               | `FW 6.x`                   |
 | 7.xx               | `FW 7.x`                   |
