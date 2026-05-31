@@ -4,48 +4,32 @@
 #include <stddef.h>
 #include <string.h>
 #include "sdk_shim.h"
-#include "kern_rw_fast.h"
-#include "proc_field_offsets.h"
-
-#define PROC_NEXT_OFFSET           0x00
-#define PROC_SELFINFO_NAME_SIZE    32
-#define PROC_LIST_LIMIT            0x1000
 
 int find_proc_pid_by_name(const char *name)
 {
     if (!name) return -1;
 
-    struct proc_field_offsets off;
-    if (proc_get_field_offsets(&off) != 0)
-        return -1;
+    for (int pid = 1; pid < 0x2710; pid++) {
+        int     mib[4];
+        uint8_t kinfo[0x448];
+        size_t  outlen = 0x448;
 
-    intptr_t kproc = 0;
-    if (kernel_copyout_fast((intptr_t)KERNEL_ADDRESS_ALLPROC,
-                            &kproc, sizeof(kproc)) != 0)
-        return -1;
+        mib[0] = 1;
+        mib[1] = 0xE;
+        mib[2] = 1;
+        mib[3] = pid;
 
-    intptr_t cur = kproc;
-    char proc_name[PROC_SELFINFO_NAME_SIZE];
+        if (__crt_syscall(202, (long)(intptr_t)mib, 4,
+                          (long)(intptr_t)kinfo,
+                          (long)(intptr_t)&outlen, 0, 0) != 0)
+            continue;
 
-    for (uint32_t i = 0; i < PROC_LIST_LIMIT && cur != 0; i++) {
-        memset(proc_name, 0, sizeof(proc_name));
-        if (kernel_copyout_fast(cur + off.name,
-                                proc_name, PROC_SELFINFO_NAME_SIZE) == 0
-            && proc_name[PROC_SELFINFO_NAME_SIZE - 1] == 0
-            && strcmp(proc_name, name) == 0)
-        {
-            int32_t pid = -1;
-            if (kernel_copyout_fast(cur + KERNEL_OFFSET_PROC_P_PID,
-                                    &pid, sizeof(pid)) != 0)
-                return -1;
-            return (int)pid;
-        }
+        char comm[0x14];
+        memcpy(comm, &kinfo[0x1BF], 0x13);
+        comm[0x13] = 0;
 
-        intptr_t next = 0;
-        if (kernel_copyout_fast(cur + PROC_NEXT_OFFSET,
-                                &next, sizeof(next)) != 0)
-            return -1;
-        cur = next;
+        if (strcmp(comm, name) == 0)
+            return pid;
     }
     return -1;
 }

@@ -131,6 +131,11 @@ static int install_kernel_patch(void)
     klog_printf("port_outer: kpatch read byte[1]=0x%02x (will OR with 3)\n",
                 scratch[1]);
 
+    if ((scratch[1] & 3) == 3) {
+        klog_puts("port_outer: kpatch already set by jailbreak\n");
+        return 0;
+    }
+
     scratch[1] |= 3;
 
     if (kernel_copyin(scratch, patch_addr, 16) < 0) {
